@@ -117,13 +117,31 @@ def hfCloseGame(move, gameData):
     
     return stdNormalize(points, 0, 4)
 
+def hfStarvationRight(move, gameData):
+    newLeft, newRight = getNewEnds(move, gameData["boardEnds"])
+    counts = gameData["opponentSuits"]["rightOpponent"]
+    return stdNormalize(14 - getSuitCount(newLeft, newRight, counts), 0, 14)
+
+def hfStarvationLeft(move, gameData):
+    newLeft, newRight = getNewEnds(move, gameData["boardEnds"])
+    counts = gameData["opponentSuits"]["leftOpponent"]
+    return stdNormalize(14 - getSuitCount(newLeft, newRight, counts), 0, 14)
+
+def hfPartnerSupport(move, gameData):
+    newLeft, newRight = getNewEnds(move, gameData["boardEnds"])
+    counts = gameData["opponentSuits"]["partner"]
+    return stdNormalize(getSuitCount(newLeft, newRight, counts), 0, 14)
+
 
 hfFunctions = [
     hfHandBalancing,
     hfBoardControl,
     hfDumpDoubles,
     hfMinimizeHandWeight,
-    hfCloseGame
+    hfCloseGame,
+    hfStarvationRight,
+    hfStarvationLeft,
+    hfPartnerSupport
 ]
 
 
@@ -193,6 +211,18 @@ def gameStateToData(gameState):
     myTeam = gameState["time"]
     history = gameState["historico"]
 
+    oppPossibilities = buildInferenceEngine(
+            hand, 
+            history, 
+            round, 
+            myId
+        )
+
+    oppSuitCounts = {
+        player: {suit: len(oppPossibilities[player] & SUIT_SETS[suit]) for suit in range(7)}
+        for player in oppPossibilities
+    }
+
     return {
         "gameState": gameState,
         "availableMoves": turnMovesInArray(gameState["movimentos_validos"]),
@@ -208,12 +238,8 @@ def gameStateToData(gameState):
         "scores": gameState["pontuacoes"],
         "myTeam": gameState["time"],
 
-        "opponentPossibilities": buildInferenceEngine(
-            hand, 
-            history, 
-            round, 
-            myId
-        )
+        "opponentPossibilities": oppPossibilities,
+        "opponentSuits": oppSuitCounts
     }
 
 def isPresa(boardEnds, table):
@@ -223,6 +249,15 @@ def isPresa(boardEnds, table):
     validUnplayedTiles = remainingTiles & playableTiles
 
     return len(validUnplayedTiles) == 1
+
+def getNewEnds(move, boardEnds):
+    tile, side = move
+    leftEnd, rightEnd = boardEnds
+
+    if side == "esquerda":
+        return [tile[0] if tile[1] == leftEnd else tile[1] ,rightEnd]
+    
+    return [leftEnd, tile[0] if tile[1] == rightEnd else tile[1]]
 
 # ===========================
 # CARD COUNTING
@@ -235,6 +270,11 @@ def countSuits(hand):
         numSuits[tile[1]] += 1
     
     return numSuits
+
+def getSuitCount(newLeft, newRight, suitCounts):
+    if newLeft == newRight:
+        return suitCounts[newLeft]
+    return suitCounts[newLeft] + suitCounts[newRight]
 
 # ===========================
 # INFERENCE ENGINE
