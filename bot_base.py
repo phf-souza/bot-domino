@@ -66,7 +66,9 @@ def hfBoardControl(move,gameData):
     leftEnd, rightEnd = gameData["boardEnds"]
     tile, side = move
 
-    if side == "esquerda":
+    if leftEnd is None or rightEnd is None:
+        newLeftEnd, newRightEnd = tile[0], tile[1]
+    elif side == "esquerda":
         newLeftEnd = tile[1] if tile[0] == leftEnd else tile[0]
         qualityValue = resultedSuits[newLeftEnd] + resultedSuits[rightEnd]
     else:
@@ -207,8 +209,8 @@ def gameStateToData(gameState):
 
     round = gameState["rodada"]
     myId = gameState["jogador"]
-    scores = gameState["pontuacoes"]
-    myTeam = gameState["time"]
+    #scores = gameState["pontuacoes"]
+    #myTeam = gameState["time"]
     history = gameState["historico"]
 
     oppPossibilities = buildInferenceEngine(
@@ -254,6 +256,9 @@ def getNewEnds(move, boardEnds):
     tile, side = move
     leftEnd, rightEnd = boardEnds
 
+    if leftEnd is None or rightEnd is None:
+        return [tile[0], tile[1]]
+
     if side == "esquerda":
         return [tile[0] if tile[1] == leftEnd else tile[1] ,rightEnd]
     
@@ -281,7 +286,8 @@ def getSuitCount(newLeft, newRight, suitCounts):
 # ===========================
 
 def buildInferenceEngine(hand, history, currentRound, myId):
-    unseenTiles = ALL_TILES - set(hand)
+    normalizedHand = { (min(t), max(t)) for t in hand }
+    unseenTiles = ALL_TILES - normalizedHand
     
     possibleTiles = {
         "leftOpponent": unseenTiles.copy(),
