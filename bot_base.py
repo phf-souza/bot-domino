@@ -1,4 +1,21 @@
 # ===========================
+# GLOBAL CONSTANTS
+# ===========================
+ALL_TILES = { (i, j) for i in range(7) for j in range(i, 7) }
+
+SUIT_SETS = {
+    suit: { (min(suit, j), max(suit, j)) for j in range(7) }
+    for suit in range(7)
+}
+
+RELATIVE_IDS = {
+    0: "me",
+    1: "rightOpponent",
+    2: "partner",
+    3: "leftOpponent"
+}
+
+# ===========================
 # "JOGA" FUNCTION
 # ===========================
 def joga(estado):
@@ -56,7 +73,7 @@ def hfBoardControl(move,gameData):
         newRightEnd = tile[1] if tile[0] == rightEnd else tile[0]
         qualityValue = resultedSuits[leftEnd] + resultedSuits[newRightEnd]
 
-    return stdNormalize(qualityValue, 0, 9)
+    return stdNormalize(qualityValue, 0, 12)
 
 def hfDumpDoubles(move,gameData):
     if move[0][0] == move[0][1]:
@@ -69,9 +86,37 @@ def hfMinimizeHandWeight(move,gameData):
     return stdNormalize(qualityValue, 0, 12)
 
 def hfCloseGame(move, gameData):
-    if gameData["handSize"] == 1:
-        return 1
-    return 0
+    if gameData["handSize"] > 1:
+        return 0
+    
+    points = 1
+    
+    tile, side = move
+    leftEnd, rightEnd = gameData["boardEnds"]
+
+    isDouble = tile[0] == tile[1]
+    fitsLeft = (tile[0] == leftEnd) or (tile[1] == leftEnd)
+    fitsRight = (tile[0] == rightEnd) or (tile[1] == rightEnd)
+    isLasquine = (not isDouble) and fitsLeft and fitsRight
+
+    if isDouble:
+        if gameData["isPresa"]:
+            # bicicleta/buchada presa
+            points = 4
+        else:
+            # buchada
+            points = 2
+    
+    elif isLasquine:
+        if gameData["isPresa"]:
+            # lasquine preso
+            points = 3
+        else:
+            #lasquine
+            points = 2
+    
+    return stdNormalize(points, 0, 4)
+
 
 hfFunctions = [
     hfHandBalancing,
@@ -124,7 +169,7 @@ def hfSum(move, weightList, gameData):
 
 
 # ===========================
-# DATA CLEANING
+# DATA CLEANING & HELPER FUNCTIONS
 # ===========================
 def suitsAfterMove(move, currentSuits):
     expectedSuits = currentSuits.copy()
@@ -138,15 +183,46 @@ def stdNormalize(value, min, max):
 
 def gameStateToData(gameState):
     hand = gameState["mao"]
+    boardEnds = (gameState["esquerda_end"], gameState["direita_end"])
+    tableSet = set(gameState["mesa"])
+    handSize = len(hand)
+
+    round = gameState["rodada"]
+    myId = gameState["jogador"]
+    scores = gameState["pontuacoes"]
+    myTeam = gameState["time"]
+    history = gameState["historico"]
 
     return {
         "gameState": gameState,
         "availableMoves": turnMovesInArray(gameState["movimentos_validos"]),
         "playerHand": hand,
         "currentSuits": countSuits(hand),
-        "handSize": len(hand),
-        "boardEnds": (gameState["esquerda_end"], gameState["direita_end"])
+        "handSize": handSize,
+        "boardEnds": boardEnds,
+        "tableSet": tableSet,
+        "isPresa": isPresa(boardEnds, tableSet) if handSize == 1 else False,
+
+        "round": gameState["rodada"],
+        "myId": gameState["jogador"],
+        "scores": gameState["pontuacoes"],
+        "myTeam": gameState["time"],
+
+        "opponentPossibilities": buildInferenceEngine(
+            hand, 
+            history, 
+            round, 
+            myId
+        )
     }
+
+def isPresa(boardEnds, table):
+    leftEnd, rightEnd = boardEnds
+    remainingTiles = ALL_TILES - table
+    playableTiles = SUIT_SETS[leftEnd] | SUIT_SETS[rightEnd]
+    validUnplayedTiles = remainingTiles & playableTiles
+
+    return len(validUnplayedTiles) == 1
 
 # ===========================
 # CARD COUNTING
@@ -159,3 +235,46 @@ def countSuits(hand):
         numSuits[tile[1]] += 1
     
     return numSuits
+
+# ===========================
+# INFERENCE ENGINE
+# ===========================
+
+def buildInferenceEngine(hand, history, currentRound, myId):
+    unseenTiles = ALL_TILES - set(hand)
+    
+    possibleTiles = {
+        "leftOpponent": unseenTiles.copy(),
+        "partner": unseenTiles.copy(),
+        "rightOpponent": unseenTiles.copy()
+    }
+
+    leftEnd = None
+    rightEnd = None
+
+    for event in history:
+        if event["rodada"] != currentRound:
+            continue
+
+        relativePlayer = getRelativePlayer(myId, event["jogador"])
+
+        if event["jogada"] == "joga":
+            raw_tile = event["peca"]
+            tile = (min(raw_tile), max(raw_tile))
+            side = event["lado"]
+            
+            if leftEnd is None:
+                leftEnd = tile[0]
+                rightEnd = tile[1]
+            elif side == "esquerda":
+                leftEnd = tile[1] if tile[0] == leftEnd else tile[0]
+            else:
+                rightEnd = tile[1] if tile[0] == rightEnd else tile[0]
+                
+        elif event["jogada"] == "passa":
+            activeSuits = SUIT_SETS[leftEnd] | SUIT_SETS[rightEnd]
+            possibleTiles[relativePlayer] -= activeSuits
+
+
+def getRelativePlayer(myId, playerId):
+    return RELATIVE_IDS[(playerId-myId)%4] 
