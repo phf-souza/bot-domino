@@ -153,7 +153,7 @@ hfFunctions = [
 # CONDITIONAL WEIGHT FUNCTION
 # ===========================
 def weightFunction(gameState):
-    return [1]*len(hfFunctions)
+    return [1.0]*len(hfFunctions)
 
 
 # ===========================

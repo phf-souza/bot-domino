@@ -8,7 +8,7 @@ Caso não haja movimentos válidos, passa.
 
 import random
 
-NOME_ESTUDANTE = "Random"
+NOME_ESTUDANTE = "RANDOM"
 
 
 def joga(estado):

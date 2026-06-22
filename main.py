@@ -8,8 +8,8 @@ Ele controla o fluxo de uma partida, chamando os bots das duplas, analisando e e
 import random as r
 import sys
 import time
-import bot_dupla_simples as bot_dupla_0
-import bot_base as bot_dupla_1
+import bot_dupla_0
+import bot_dupla_1
 
 
 def construir_domino():
