@@ -8,8 +8,6 @@ import bot_dupla_0 # Your bot (Player 0 & 2)
 import bot_dupla_1 # The opponent "slot" (Player 1 & 3)
 
 # Import the Gauntlet Opponents
-import bot_random
-import bot_simples
 import bot_baseline
 
 # ==========================================
@@ -19,59 +17,41 @@ NUM_WEIGHTS = 8        # You have 8 heuristic functions
 POPULATION_SIZE = 40   # Number of bots per generation
 GENERATIONS = 50       # How many times to evolve
 MUTATION_RATE = 0.1    # 10% chance a weight randomly changes
-MUTATION_AMOUNT = 0.2  # How much a weight changes when mutated
+MUTATION_AMOUNT = 0.05  # How much a weight changes when mutated
 
 
 def create_random_bot():
     """Creates a bot with 8 random weights between 0.0 and 1.0"""
     return [random.uniform(0.0, 1.0) for _ in range(NUM_WEIGHTS)]
 
-def calculate_match_score(pontuacoes):
+def calculate_match_score(pontuacoes, target=50):
     """
     pontuacoes is a list: [Team_0_Score, Team_1_Score]
     Team 0 is ALWAYS our bot.
+    'target' lets us easily switch between 20-point and 50-point matches.
     """
     my_score = pontuacoes[0]
     opp_score = pontuacoes[1]
     
-    if my_score >= 20:
+    if my_score >= target:
         # We won! Reward 100 points, PLUS bonus points for keeping their score low.
-        return 100 + (20 - opp_score) 
+        return 100 + (target - opp_score) 
     else:
         # We lost. Penalize 50 points, AND deduct more if we got crushed.
         return -50 - opp_score
 
 
 def evaluate_fitness(weights):
-    """
-    THE TRUE GAUNTLET:
-    Plays 1 match vs Random, 1 vs Simples, and 2 vs Baseline.
-    """
     bot_dupla_0.GLOBAL_GA_WEIGHTS = weights
     total_score = 0
     
-    # ==========================================
-    # MATCH 1: Vs Random
-    # ==========================================
-    engine_random = main.criar_engine(bot_dupla_0.joga, bot_random.joga, "Nosso Bot", "Random", target_score=20)
-    main.jogar_partida(engine_random) 
-    # Read the final score directly from the engine dictionary!
-    total_score += calculate_match_score(engine_random["pontuacoes"])
-    
-    # ==========================================
-    # MATCH 2: Vs Simples
-    # ==========================================
-    engine_simples = main.criar_engine(bot_dupla_0.joga, bot_simples.joga, "Nosso Bot", "Simples", target_score=20)
-    main.jogar_partida(engine_simples)
-    total_score += calculate_match_score(engine_simples["pontuacoes"])
-    
-    # ==========================================
-    # MATCH 3 & 4: Vs Baseline 
-    # ==========================================
-    for _ in range(2):
-        engine_baseline = main.criar_engine(bot_dupla_0.joga, bot_baseline.joga, "Nosso Bot", "Baseline", target_score=20)
+    # NO MORE RANDOM OR SIMPLES. Just 5 hard matches vs the Phase 1 Champion!
+    for _ in range(5):
+        engine_baseline = main.criar_engine(bot_dupla_0.joga, bot_baseline.joga, "Bot Evo", "Baseline", target_score=50)
         main.jogar_partida(engine_baseline)
-        total_score += calculate_match_score(engine_baseline["pontuacoes"])
+        
+        # Make sure to update your calculate_match_score to expect 50 points again!
+        total_score += calculate_match_score(engine_baseline["pontuacoes"], target=50) 
             
     return total_score
 

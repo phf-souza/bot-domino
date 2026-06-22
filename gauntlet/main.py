@@ -795,7 +795,7 @@ def jogar_partida(engine):
 
 def jogo():
     seed = None
-    target_score = 20
+    target_score = 50
     historic = True
 
     bot0 = bot_dupla_0.joga
