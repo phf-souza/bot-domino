@@ -1,3 +1,5 @@
+NOME_ESTUDANTE = "Pedro Souza"
+
 # ===========================
 # GLOBAL CONSTANTS
 # ===========================
