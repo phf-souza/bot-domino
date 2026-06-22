@@ -1,5 +1,4 @@
-list2 = [1, 3, 2]
+lista = ["a","b"]
 
-list2.sort(reverse=True)
-
-print(list2)
+for index, hf in enumerate(lista):
+    print(index,hf)

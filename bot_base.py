@@ -18,16 +18,16 @@ def joga(estado):
 # ===========================
 # HEURISTIC FUNCTIONS
 # ===========================
-def hfHandBalancing():
+def hfHandBalancing(move,gameData):
     return 0
 
-def hfBoardControl():
+def hfBoardControl(move,gameData):
     return 0
 
-def hfDumpDoubles():
+def hfDumpDoubles(move,gameData):
     return 0
 
-def hfMinimizeHandWeight():
+def hfMinimizeHandWeight(move,gameData):
     return 0
 
 hfFunctions = [
@@ -61,7 +61,7 @@ def onlyMove(validMoves):
 # ===========================
 # CONDITIONAL WEIGHT FUNCTION
 # ===========================
-def weightFunction():
+def weightFunction(gameState):
     return [1]*len(hfFunctions)
 
 
@@ -69,40 +69,32 @@ def weightFunction():
 # QUALITY MOVE CALCULATOR
 # ===========================
 def bestMove(gameState):
-    avaliableMoves = turnMovesInArray(gameState["movimentos_validos"])
-    moveQuality = []
+    availableMoves = turnMovesInArray(gameState["movimentos_validos"])
+    currentWeight = weightFunction(gameState)
+    gameData = gameState
 
-    for move in avaliableMoves:
-        moveQuality.append(hfSum(move,gameState))
-    
-    bestMoveIndex = moveQuality.index(max(moveQuality))
+    bestMoveTuple = max(availableMoves, key=lambda move: hfSum(move, currentWeight, gameData))
 
     return {
         "jogada": "joga",
-        "peca": avaliableMoves[bestMoveIndex]["tile"],
-        "lado": avaliableMoves[bestMoveIndex]["side"]
+        "peca": bestMoveTuple[0],
+        "lado": bestMoveTuple[1]
     }
 
 def turnMovesInArray(validMoves):
+    # move[0] = tile, move[1] = side
     movesArray = []
 
     for position in validMoves:
         for tile in validMoves[position]:
-            movesArray.append({
-                "tile": tile,
-                "side": position
-            })
+            movesArray.append((tile, position))
     
     return movesArray
-git 
-def hfSum(move, gameState):
-    weightList = weightFunction()
-    numHfFunctions = len(weightList)
+ 
+def hfSum(move, weightList, gameData):
     qualityValue = 0
 
-    gameData = gameState
-
-    for index in range(numHfFunctions):
-        qualityValue += weightList[index]*hfFunctions[index](move, gameState)
+    for index, hf in enumerate(hfFunctions):
+        qualityValue += weightList[index]*hf(move, gameData)
     
     return qualityValue
