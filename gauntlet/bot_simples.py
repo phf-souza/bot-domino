@@ -6,7 +6,7 @@ O bot 'Simples' sempre seleciona a jogada correspondente ao primeiro movimento v
 Caso não haja movimentos válidos, ele passa.
 """
 
-NOME_ESTUDANTE = "Simples"
+NOME_ESTUDANTE = "SIMPLES"
 
 
 def joga(estado):

@@ -1,4 +1,4 @@
-NOME_ESTUDANTE = "BASE GEN I"
+NOME_ESTUDANTE = "Pedro Souza"
 
 # ===========================
 # GLOBAL CONSTANTS
@@ -16,6 +16,8 @@ RELATIVE_IDS = {
     2: "partner",
     3: "leftOpponent"
 }
+
+GLOBAL_GA_WEIGHTS = None
 
 # ===========================
 # "JOGA" FUNCTION
@@ -153,7 +155,10 @@ hfFunctions = [
 # CONDITIONAL WEIGHT FUNCTION
 # ===========================
 def weightFunction(gameState):
-    return [0.4881265347683086, 0.7930528523047854, 0.46283539166840443, 0.1141025917806604, 0.5407343454352296, 1.0, 0.32795436635088177, 0.12103873232350484]
+    if GLOBAL_GA_WEIGHTS is not None:
+        return GLOBAL_GA_WEIGHTS
+    
+    return [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
 
 # ===========================
