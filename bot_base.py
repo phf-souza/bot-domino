@@ -262,6 +262,11 @@ def buildInferenceEngine(hand, history, currentRound, myId):
             raw_tile = event["peca"]
             tile = (min(raw_tile), max(raw_tile))
             side = event["lado"]
+
+            if relativePlayer != "me":
+                possibleTiles["leftOpponent"].discard(tile)
+                possibleTiles["partner"].discard(tile)
+                possibleTiles["rightOpponent"].discard(tile)
             
             if leftEnd is None:
                 leftEnd = tile[0]
@@ -270,10 +275,14 @@ def buildInferenceEngine(hand, history, currentRound, myId):
                 leftEnd = tile[1] if tile[0] == leftEnd else tile[0]
             else:
                 rightEnd = tile[1] if tile[0] == rightEnd else tile[0]
-                
-        elif event["jogada"] == "passa":
-            activeSuits = SUIT_SETS[leftEnd] | SUIT_SETS[rightEnd]
-            possibleTiles[relativePlayer] -= activeSuits
+
+        elif event["jogada"] == "passa":        
+            if relativePlayer != "me":
+                if leftEnd is not None:
+                    activeSuits = SUIT_SETS[leftEnd] | SUIT_SETS[rightEnd]
+                    possibleTiles[relativePlayer] -= activeSuits
+        
+    return possibleTiles
 
 
 def getRelativePlayer(myId, playerId):
