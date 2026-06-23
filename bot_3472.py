@@ -1,4 +1,6 @@
-NOME_ESTUDANTE = "BASE GEN II"
+NOME_ESTUDANTE = "Pedro Henrique Fontoura de Souza"
+
+# GEN I
 
 # ===========================
 # GLOBAL CONSTANTS
@@ -154,7 +156,6 @@ hfFunctions = [
 # ===========================
 def weightFunction(gameState):
     return [0.4953547392092285, 0.7325535652248086, 0.21919338445285977, 0.0775566572679972, 0.3817976314869757, 0.5387734777817978, 0.82435187997299, 0.7342799298124432]
-
 
 # ===========================
 # QUALITY MOVE CALCULATOR

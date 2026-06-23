@@ -8,7 +8,7 @@ import bot_dupla_0 # Your bot (Player 0 & 2)
 import bot_dupla_1 # The opponent "slot" (Player 1 & 3)
 
 # Import the Gauntlet Opponents
-import bot_baseline
+import bot_dupla_1
 
 # ==========================================
 # GA HYPERPARAMETERS (Tweak these!)
@@ -47,7 +47,7 @@ def evaluate_fitness(weights):
     
     # NO MORE RANDOM OR SIMPLES. Just 5 hard matches vs the Phase 1 Champion!
     for _ in range(5):
-        engine_baseline = main.criar_engine(bot_dupla_0.joga, bot_baseline.joga, "Bot Evo", "Baseline", target_score=50)
+        engine_baseline = main.criar_engine(bot_dupla_0.joga, bot_dupla_1.joga, "Bot Evo", "Baseline", target_score=50)
         main.jogar_partida(engine_baseline)
         
         # Make sure to update your calculate_match_score to expect 50 points again!
@@ -87,15 +87,18 @@ if __name__ == '__main__':
     print("Starting Genetic Algorithm Training...")
     start_time = time.time()
     
-    # 1. Initialize Generation 0
-    population = [create_random_bot() for _ in range(POPULATION_SIZE)]
+    PHASE_1_CHAMPION = [0.4881265347683086, 0.7930528523047854, 0.46283539166840443, 0.1141025917806604, 0.5407343454352296, 1.0, 0.32795436635088177, 0.12103873232350484]
+
+    population = [PHASE_1_CHAMPION] # Start with the champion
+    for _ in range(POPULATION_SIZE - 1):
+        # Fill the rest with slightly mutated versions of the champion
+        population.append(mutate(PHASE_1_CHAMPION))
     
     for gen in range(GENERATIONS):
         print(f"\n--- Generation {gen+1}/{GENERATIONS} ---")
         
         # 2. Evaluate Fitness (Using all CPU cores!)
-        with ProcessPoolExecutor() as executor:
-            # This runs 'evaluate_fitness' for every bot in the population simultaneously
+        with ProcessPoolExecutor(max_workers=2) as executor:
             fitness_scores = list(executor.map(evaluate_fitness, population))
         
         # Pair bots with their scores and sort them (highest score first)
