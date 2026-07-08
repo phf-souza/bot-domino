@@ -174,16 +174,6 @@ def bestMove(gameState):
         "peca": bestMoveTuple[0],
         "lado": bestMoveTuple[1]
     }
-
-def turnMovesInArray(validMoves):
-    # move[0] = tile, move[1] = side
-    movesArray = []
-
-    for position in validMoves:
-        for tile in validMoves[position]:
-            movesArray.append((tile, position))
-    
-    return movesArray
  
 def hfSum(move, weightList, gameData):
     qualityValue = 0
@@ -195,17 +185,17 @@ def hfSum(move, weightList, gameData):
 
 
 # ===========================
-# DATA CLEANING & HELPER FUNCTIONS
+# DATA CLEANING
 # ===========================
-def suitsAfterMove(move, currentSuits):
-    expectedSuits = currentSuits.copy()
-    expectedSuits[move[0][0]] -= 1
-    expectedSuits[move[0][1]] -= 1
+def turnMovesInArray(validMoves):
+    # move[0] = tile, move[1] = side
+    movesArray = []
 
-    return expectedSuits
-
-def stdNormalize(value, min, max):
-    return (value-min)/(max-min)
+    for position in validMoves:
+        for tile in validMoves[position]:
+            movesArray.append((tile, position))
+    
+    return movesArray
 
 def gameStateToData(gameState):
     hand = gameState["mao"]
@@ -250,25 +240,8 @@ def gameStateToData(gameState):
         "opponentSuits": oppSuitCounts
     }
 
-def isPresa(boardEnds, table):
-    leftEnd, rightEnd = boardEnds
-    remainingTiles = ALL_TILES - table
-    playableTiles = SUIT_SETS[leftEnd] | SUIT_SETS[rightEnd]
-    validUnplayedTiles = remainingTiles & playableTiles
-
-    return len(validUnplayedTiles) == 1
-
-def getNewEnds(move, boardEnds):
-    tile, side = move
-    leftEnd, rightEnd = boardEnds
-
-    if leftEnd is None or rightEnd is None:
-        return [tile[0], tile[1]]
-
-    if side == "esquerda":
-        return [tile[0] if tile[1] == leftEnd else tile[1] ,rightEnd]
-    
-    return [leftEnd, tile[0] if tile[1] == rightEnd else tile[1]]
+def getRelativePlayer(myId, playerId):
+    return RELATIVE_IDS[(playerId-myId)%4] 
 
 # ===========================
 # CARD COUNTING
@@ -281,15 +254,6 @@ def countSuits(hand):
         numSuits[tile[1]] += 1
     
     return numSuits
-
-def getSuitCount(newLeft, newRight, suitCounts):
-    if newLeft == newRight:
-        return suitCounts[newLeft]
-    return suitCounts[newLeft] + suitCounts[newRight]
-
-# ===========================
-# INFERENCE ENGINE
-# ===========================
 
 def buildInferenceEngine(hand, history, currentRound, myId):
     normalizedHand = { (min(t), max(t)) for t in hand }
@@ -336,6 +300,41 @@ def buildInferenceEngine(hand, history, currentRound, myId):
         
     return possibleTiles
 
+# ===========================
+# HELPER FUNCTIONS
+# ===========================
+def getSuitCount(newLeft, newRight, suitCounts):
+    if newLeft == newRight:
+        return suitCounts[newLeft]
+    return suitCounts[newLeft] + suitCounts[newRight]
 
-def getRelativePlayer(myId, playerId):
-    return RELATIVE_IDS[(playerId-myId)%4] 
+def suitsAfterMove(move, currentSuits):
+    expectedSuits = currentSuits.copy()
+    expectedSuits[move[0][0]] -= 1
+    expectedSuits[move[0][1]] -= 1
+
+    return expectedSuits
+
+def stdNormalize(value, min, max):
+    return (value-min)/(max-min)
+
+def isPresa(boardEnds, table):
+    leftEnd, rightEnd = boardEnds
+    remainingTiles = ALL_TILES - table
+    playableTiles = SUIT_SETS[leftEnd] | SUIT_SETS[rightEnd]
+    validUnplayedTiles = remainingTiles & playableTiles
+
+    return len(validUnplayedTiles) == 1
+
+def getNewEnds(move, boardEnds):
+    tile, side = move
+    leftEnd, rightEnd = boardEnds
+
+    if leftEnd is None or rightEnd is None:
+        return [tile[0], tile[1]]
+
+    if side == "esquerda":
+        return [tile[0] if tile[1] == leftEnd else tile[1] ,rightEnd]
+    
+    return [leftEnd, tile[0] if tile[1] == rightEnd else tile[1]]
+
