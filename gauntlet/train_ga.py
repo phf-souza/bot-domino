@@ -2,56 +2,30 @@ import random
 from concurrent.futures import ProcessPoolExecutor
 import time
 import importlib
-
-
-# --- IMPORT YOUR FILES HERE ---
 import main 
-import bot_dupla_0 # Your bot (Player 0 & 2)
+import bot_dupla_0
 
 # ==========================================
-# GA HYPERPARAMETERS (Tweak these!)
+# TRAINING PARAMETERS
 # ==========================================
-NUM_WEIGHTS = 8        # You have 8 heuristic functions
-POPULATION_SIZE = 40   # Number of bots per generation
-GENERATIONS = 50       # How many times to evolve
-MUTATION_RATE = 0.1    # 10% chance a weight randomly changes
-MUTATION_AMOUNT = 0.05  # How much a weight changes when mutated
-LEAGUE_OF_OPPONENTS = ["bot_baseline", "bot_orion"] 
+NUM_WEIGHTS = 8        
+POPULATION_SIZE = 40   
+GENERATIONS = 50       
+MUTATION_RATE = 0.1    
+MUTATION_AMOUNT = 0.05 
+LEAGUE_OF_OPPONENTS = ["bot_baseline", "bot_random"] 
 
-
-def create_random_bot():
-    """Creates a bot with 8 random weights between 0.0 and 1.0"""
-    return [random.uniform(0.0, 1.0) for _ in range(NUM_WEIGHTS)]
-
-def calculate_match_score(pontuacoes, target=50):
-    """
-    pontuacoes is a list: [Team_0_Score, Team_1_Score]
-    Team 0 is ALWAYS our bot.
-    'target' lets us easily switch between 20-point and 50-point matches.
-    """
-    my_score = pontuacoes[0]
-    opp_score = pontuacoes[1]
-    
-    if my_score >= target:
-        # We won! Reward 100 points, PLUS bonus points for keeping their score low.
-        return 100 + (target - opp_score) 
-    else:
-        # We lost. Penalize 50 points, AND deduct more if we got crushed.
-        return -50 - opp_score
-
-
-
-
+# ==========================================
+# MATCH RUNNING
+# ==========================================
 def evaluate_fitness(weights):
+    """Runs the match cycle"""
     bot_dupla_0.GLOBAL_GA_WEIGHTS = weights
     total_score = 0
     
-    # Iterate through every bot in your league
     for opponent_name in LEAGUE_OF_OPPONENTS:
-        # Dynamically import the module
         opponent_module = importlib.import_module(opponent_name)
         
-        # Play matches against this specific opponent
         for _ in range(3):
             engine = main.criar_engine(
                 bot_dupla_0.joga, 
@@ -65,11 +39,13 @@ def evaluate_fitness(weights):
             
     return total_score
 
+# ==========================================
+# GENETIC FUNCTIONS
+# ==========================================
 def crossover(parent1, parent2):
-    """Mixes the weights of two good bots to create a child"""
+    """Mixes the weights of two bots"""
     child = []
     for i in range(NUM_WEIGHTS):
-        # 50/50 chance to inherit weight from Parent 1 or Parent 2
         if random.random() > 0.5:
             child.append(parent1[i])
         else:
@@ -77,7 +53,7 @@ def crossover(parent1, parent2):
     return child
 
 def mutate(weights):
-    """Randomly tweaks weights to discover new strategies"""
+    """Randomly tweaks weights"""
     mutated = []
     for w in weights:
         if random.random() < MUTATION_RATE:
@@ -91,7 +67,24 @@ def mutate(weights):
     return mutated
 
 # ==========================================
-# THE MAIN TRAINING LOOP
+# HELPER FUNCTIONS
+# ==========================================
+def create_random_bot():
+    """Creates a bot with random weights"""
+    return [random.uniform(0.0, 1.0) for _ in range(NUM_WEIGHTS)]
+
+def calculate_match_score(pontuacoes, target=50):
+    """Calculates match quality"""
+    my_score = pontuacoes[0]
+    opp_score = pontuacoes[1]
+    
+    if my_score >= target:
+        return 100 + (target - opp_score) 
+    else:
+        return -50 + my_score
+
+# ==========================================
+# THE GAUNTLET!!!!
 # ==========================================
 if __name__ == '__main__':
     print("Starting Genetic Algorithm Training...")
@@ -99,42 +92,35 @@ if __name__ == '__main__':
     
     PHASE_1_CHAMPION = [0.4963672738699805, 0.8255614294145706, 0.40841805357868727, 0.22510209926977592, 0.5944135949014532, 0.9682123229548345, 0.3331048927926647, 0.13374204812263957]
 
-    population = [PHASE_1_CHAMPION] # Start with the champion
+    population = [PHASE_1_CHAMPION]
     for _ in range(POPULATION_SIZE - 1):
-        # Fill the rest with slightly mutated versions of the champion
         population.append(mutate(PHASE_1_CHAMPION))
     
     for gen in range(GENERATIONS):
         print(f"\n--- Generation {gen+1}/{GENERATIONS} ---")
         
-        # 2. Evaluate Fitness (Using all CPU cores!)
         with ProcessPoolExecutor(max_workers=16) as executor:
             fitness_scores = list(executor.map(evaluate_fitness, population))
         
-        # Pair bots with their scores and sort them (highest score first)
         scored_population = list(zip(population, fitness_scores))
         scored_population.sort(key=lambda x: x[1], reverse=True)
         
         best_bot, best_score = scored_population[0]
         print(f"Best Score: {best_score} | Weights: {[round(w, 2) for w in best_bot]}")
         
-        # 3. Selection (Keep the top 20%)
         num_elite = int(POPULATION_SIZE * 0.2)
         next_generation = [bot for bot, score in scored_population[:num_elite]]
         
-        # 4. Breed to fill the rest of the population
         while len(next_generation) < POPULATION_SIZE:
-            # Pick two random parents from the top 50%
-            top_half = [bot for bot, score in scored_population[:int(POPULATION_SIZE/2)]]
+            top_half = [bot for bot, score in scored_population[:num_elite]]
             p1 = random.choice(top_half)
             p2 = random.choice(top_half)
             
-            # Crossover & Mutate
             child = crossover(p1, p2)
             child = mutate(child)
             next_generation.append(child)
             
         population = next_generation
         
-    print(f"\nTraining Complete in {(time.time() - start_time)/60:.1f} minutes!")
-    print(f"THE ULTIMATE WEIGHTS: {best_bot}")
+    print(f"\nTraining Complete in {(time.time() - start_time)/60:.1f} minutes.")
+    print(f"BEHOLD THE CHAMPION: {best_bot}")
